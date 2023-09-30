@@ -1,36 +1,39 @@
-# @title 🖥️ Main Colab Leech Code
+# @title 🖥️ Cấu hình chế độ Download/Upload
 
 # @title Main Code
-# @markdown <div><center><img src="https://user-images.githubusercontent.com/125879861/255391401-371f3a64-732d-4954-ac0f-4f093a6605e1.png" height=80></center></div>
 
-# @markdown <br><h3><b>🖱️ Select The `Bot Mode` You want</b></h3>
+# @markdown <br><h2><b>🖱️ Chọn chế độ `Mode` bạn muốn</b></h2>
+# @markdown <br><h3><b>Leech => Down & Up lên Telegram</b></h3>
+# @markdown <br><h3><b>Mirror => Down & Up lên GG Driver</b></h3>
+# @markdown <br><h3><b>Dir-Leech => Up file từ GG Driver của bạn lên Telegram ( Chạy Mount GG Driver )</b></h3>
+
 MODE = "Leech"  # @param ["Leech", "Mirror", "Dir-Leech"]
 TYPE = "Normal"  # @param ["Normal", "Zip", "Unzip", "UnDoubleZip"]
 UPLOAD_MODE = "Media"  # @param ["Media", "Document"]
-# @markdown > <i>Media UPLOAD_MODE will upload files as `Streamable` on Telegram 
+# @markdown > <i>Media UPLOAD_MODE will upload files as `Streamable` on Telegram
 
-# @markdown <br><h3><b>✅ Tick The Below Checkbox If You Use any `Video Site Links`</b></h3>
-YTDL_DOWNLOAD_MODE = False  # @param {type:"boolean"}
-# @markdown > <i>YouTube Links Are Auto Detected</i> 😉
+# @markdown <br><h3><b>✅ Đấu dấu vào ô bên dưới nếu bạn muốn tải video từ nhiều trang video <a href="https://ytdl-org.github.io/youtube-dl/supportedsites.html"> `Danh sách Site hỗ trợ`</a></b></h3>
+YTDL_DOWNLOAD_MODE = True  # @param {type:"boolean"}
+# @markdown > <i>Link YouTube tự động nhận ( một số video không thể download )</i>
 
-# @markdown <br><h3><b>🎥 Choose Options For `Video Converter` </b> </h3>
+# @markdown <br><h3><b>🎥 Chọn chế độ converter file cho video </b> </h3>
 CONVERT_VIDEOS = False  # @param {type:"boolean"}
-# @markdown > <i>If Enabled, it will convert any non-mp4 or mkv video file to mp4 or mkv</i>🎬
+# @markdown > <i>Nếu được bật, nó sẽ chuyển đổi mọi tệp video không phải mp4 hoặc mkv sang mp4 hoặc mkv</i>🎬
 OUT_FORMAT = "MP4"  # @param ["MP4", "MKV"]
 
-# @markdown <br><h3><b>🚂 Some Others `Options` </b></h3>
+# @markdown <br><h3><b>🛠️ Một số `tùy chọn` khác </b></h3>
 ENABLE_CUSTOM_FILE_NAME = False  # @param {type:"boolean"}
-# @markdown > <i>Enable This to Rename Uploaded Files </i>✏️
+# @markdown > <i>Kích hoạt tính năng này để đổi tên các tệp đã tải lên </i>✏️
 ENABLE_PASSWORD_SUPPORT = False  # @param {type:"boolean"}
-# @markdown > <i>Enable This to Unzip Encrypted Archives or Create Encrypted Archives</i> 🔐
+# @markdown > <i>Kích hoạt tính năng này để giải nén từ file.zip bạn tải về ( điền mật khẩu file.zip)</i> 🔐
 
-# @markdown <br><h3><b>🖱️ Select The File `Caption Mode` You want</b></h3>
+# @markdown <br><h3><b>🖱️ Chọn chế độ `Ghi chú` Bạn muốn tải lên</b></h3>
 
 CAPTION = "Monospace"  # @param ["Regular", "Bold", "Italic", "Monospace", "Underlined"]
 PREFIX = ""  # @param {type: "string"}
-# @markdown > <i>Using Prefix is purely Optional</i> 🤷🏻‍♂️
+# @markdown > <i>Tất cả tùy chọn đều có thể bỏ qua nếu bạn không muốn</i> 🤷🏻‍♂️
 
-import os, io, re, shutil, time, yt_dlp, math, pytz, psutil, uvloop, pathlib, subprocess
+import os, io, re, shutil, time, yt_dlp, math, pytz, psutil, uvloop, pathlib, subprocess, mimetypes
 from PIL import Image
 from pyrogram import Client
 from natsort import natsorted
@@ -97,30 +100,15 @@ def sizeUnit(size):
 
 
 def fileType(file_path: str):
-    extensions_dict = {
-        ".mp4": "video",
-        ".avi": "video",
-        ".mkv": "video",
-        ".m2ts": "video",
-        ".mov": "video",
-        ".webm": "video",
-        ".vob": "video",
-        ".m4v": "video",
-        ".mp3": "audio",
-        ".wav": "audio",
-        ".flac": "audio",
-        ".aac": "audio",
-        ".ogg": "audio",
-        ".jpg": "photo",
-        ".jpeg": "photo",
-        ".png": "photo",
-        ".bmp": "photo",
-        ".gif": "photo",
-    }
-    _, extension = ospath.splitext(file_path)
-
-    if extension.lower() in extensions_dict:
-        return extensions_dict[extension]
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if mime_type == None:
+        return "document"
+    else:
+        type = mime_type.split("/")[0]
+    if type == "image":
+        return "photo"
+    elif type in ["audio", "video"]:
+        return type
     else:
         return "document"
 
@@ -179,9 +167,9 @@ async def videoConverter(file: str):
 
     async def msg_updater(c: int, tr, engine: str):
         messg = f"╭「" + "░" * c + "█" + "░" * (11 - c) + "」"
-        messg += f"\n├🖥️ **Status »** __Running__\n├🕹 **Attempt »** __{tr}__"
+        messg += f"\n├⏳ **Status »** __Running 🏃🏼‍♂️__\n├🕹 **Attempt »** __{tr}__"
         messg += f"\n├⚙️ **Engine »** __{engine}__\n├💪🏼 **Handler »** __{core}__"
-        messg += f"\n╰⏳ **Time Spent »** __{getTime((datetime.now() - task_start).seconds)}__"
+        messg += f"\n╰🍃 **Time Spent »** __{getTime((datetime.now() - task_start).seconds)}__"
         try:
             await bot.edit_message_text(
                 chat_id=chat_id,
@@ -201,10 +189,10 @@ async def videoConverter(file: str):
     gpu = !nvidia-smi --query-gpu=gpu_name --format=csv # type: ignore
 
     if len(gpu) != 1:
-        cmd = f"ffmpeg -y -hwaccel cuvid -c:v h264_cuvid -i '{file}' -preset slow -c:v h264_nvenc -c:a copy '{out_file}'"
+        cmd = f"ffmpeg -y -hwaccel cuvid -c:v h264_cuvid -i '{file}' -preset slow -crf 18 -c:v h264_nvenc -c:a copy '{out_file}'"
         core = "GPU"
     else:
-        cmd = f"ffmpeg -y -i '{file}' -preset slow -c:v libx264 -c:a copy '{out_file}'"
+        cmd = f"ffmpeg -y -i '{file}' -preset slow -crf 18 -c:v libx264 -c:a copy '{out_file}'"
         core = "CPU"
 
     mtext = f"<b>🎥 Converting Video »</b>\n\n{ospath.basename(file)}\n\n"
@@ -590,7 +578,7 @@ async def on_output(output: str):
     elapsed_time_seconds = (datetime.now() - start_time).seconds
 
     if elapsed_time_seconds >= 270 and not link_info:
-        raise Exception("Failed to get download information ! Probably dead link 💀")
+        raise Exception("Không tải xuống được! Chắc link chết rồi đó bạn 💀")
     # Only Do this if got Information
     if total_size != "0B":
         # Calculate download speed
@@ -874,12 +862,12 @@ async def calG_DownSize(sources):
             except Exception as e:
                 if "File not found" in str(e):
                     raise Exception(
-                        "The file link you gave either doesn't exist or You don't have access to it!"
+                        "Liên kết tệp bạn nhập không tồn tại hoặc Bạn không có quyền truy cập vào nó!"
                     )
                 elif "Failed to retrieve" in str(e):
                     clear_output()
                     raise Exception(
-                        "Authorization Error with Google ! Make Sure you uploaded token.pickle !"
+                        "Lỗi ủy quyền với Google! Hãy chắc chắn rằng bạn đã tải lên token.pickle !"
                     )
                 else:
                     raise Exception(f"Error in G-API: {e}")
@@ -905,7 +893,7 @@ def get_Aria2c_Name(link):
     filename = stdout_str.split("complete: ")[-1].split("\n")[0]
     name = filename.split("/")[-1]
     if len(name) == 0:
-        name = "UNKNOWN DOWNLOAD NAME"
+        name = "TÊN TẢI XUỐNG CHƯA XÁC ĐỊNH"
     return name
 
 
@@ -915,7 +903,7 @@ def get_YT_Name(link):
         if "title" in info:
             return info["title"]
         else:
-            return "UNKNOWN DOWNLOAD NAME"
+            return "TÊN TẢI XUỐNG CHƯA XÁC ĐỊNH"
 
 
 async def get_d_name(link):
@@ -1056,12 +1044,12 @@ async def gDownloadFile(file_id, path):
 
     if file is None:
         print(
-            "Sorry, the specified file or folder does not exist or is not accessible."
+            "Rất tiếc, tệp hoặc thư mục được chỉ định không tồn tại hoặc không thể truy cập được."
         )
     else:
         if file["mimeType"].startswith("application/vnd.google-apps"):
             print(
-                "Sorry, the specified ID is for a Google Docs, Sheets, Slides, or Forms document. You can only download these types of files in specific formats."
+                "Rất tiếc, ID được chỉ định là Google Tài liệu, Trang tính, Trang trình bày hoặc Biểu mẫu. Bạn chỉ có thể tải xuống các loại tệp này ở các định dạng cụ thể."
             )
         else:
             try:
@@ -1106,10 +1094,10 @@ async def gDownloadFile(file_id, path):
                 down_count[0] += 1
 
             except HttpError as error:
-                if error.resp.status == 403 and "User Rate Limit Exceeded" in str(
+                if error.resp.status == 403 and "Đã vượt quá giới hạn tỷ lệ người dùng" in str(
                     error
                 ):
-                    raise HttpError("Download quota for the file has been exceeded.")
+                    raise HttpError("Đã vượt quá hạn ngạch tải xuống cho tệp.")
                 else:
                     print("Error downloading: {0}".format(error))
             except Exception as e:
@@ -1150,20 +1138,11 @@ def keyboard():
         [
             [  # First row
                 InlineKeyboardButton(  # Opens a web URL
-                    "Git Repo 🪲",
-                    url="https://github.com/cokhinao/Base-bot",
-                ),
-            ],
-            [
-                InlineKeyboardButton(  # Opens a web URL
-                    "Website 📣",
-                    url="https://kiemtiencoban.com",
-                ),
-                InlineKeyboardButton(  # Opens a web URL
-                    "Support",
+                    "Báo lỗi ✅",
                     url="https://t.me/kiemtiencoban",
                 ),
             ],
+
         ]
     )
 
@@ -1174,7 +1153,7 @@ async def status_bar(down_msg, speed, percentage, eta, done, left, engine):
     # bar = "⬢" * filled_length + "⬡" * (bar_length - filled_length)
     bar = "█" * filled_length + "░" * (bar_length - filled_length)
     message = (
-        f"\n╭「{bar}」 » __{percentage:.2f}%__\n├⚡️ **Speed »** __{speed}__\n├⚙️ **Engine »** __{engine}__"
+        f"\n╭「{bar}」 **»** __{percentage:.2f}%__\n├⚡️ **Speed »** __{speed}__\n├⚙️ **Engine »** __{engine}__"
         + f"\n├⏳ **Time Left »** __{eta}__"
         + f"\n├🍃 **Time Spent »** __{getTime((datetime.now() - task_start).seconds)}__"
         + f"\n├✅ **Processed »** __{done}__\n╰📦 **Total Size »** __{left}__"
@@ -1295,7 +1274,7 @@ async def upload_file(file_path, real_name):
 
 async def downloadManager(source, is_ytdl: bool):
     global link_info, msg
-    message = "\n<b>Please Wait...</b> ⏳\n<i>Merging YTDL Video...</i> 🐬"
+    message = "\n<b>Vui lòng chờ...</b> ⏳\n<i>Hợp nhất video YTDL...</i> 🐬"
     if is_ytdl:
         for i, link in enumerate(source):
             await YTDL_Status(link, i + 1)
@@ -1330,7 +1309,7 @@ async def downloadManager(source, is_ytdl: bool):
                 while not isYtdlComplete():
                     time.sleep(2)
             else:
-                aria2_dn = f"<b>PLEASE WAIT ⌛</b>\n\n__Getting Download Info For__\n\n<code>{link}</code>"
+                aria2_dn = f"<b>Vui lòng chờ ⌛</b>\n\n__Đang lấy thông tin tải xuống từ__\n\n<code>{link}</code>"
                 try:
                     await bot.edit_message_text(
                         chat_id=chat_id,
@@ -1346,7 +1325,6 @@ async def downloadManager(source, is_ytdl: bool):
 
 async def Leech(folder_path: str, remove: bool):
     global total_down_size, text_msg, start_time, msg, sent
-    total_down_size = getSize(folder_path)
     files = [str(p) for p in pathlib.Path(folder_path).glob("**/*") if p.is_file()]
     for f in natsorted(files):
         file_path = ospath.join(folder_path, f)
@@ -1354,6 +1332,12 @@ async def Leech(folder_path: str, remove: bool):
         # Converting Video Files
         if CONVERT_VIDEOS and fileType(file_path) == "video":
             file_path = await videoConverter(file_path)
+
+    total_down_size = getSize(folder_path)
+
+    files = [str(p) for p in pathlib.Path(folder_path).glob("**/*") if p.is_file()]
+    for f in natsorted(files):
+        file_path = ospath.join(folder_path, f)
 
         leech = await sizeChecker(file_path, remove)
 
@@ -1501,7 +1485,7 @@ async def Do_Leech(source, is_dir, is_ytdl, is_zip, is_unzip, is_dualzip):
     if is_dir:
         for s in source:
             if not ospath.exists(s):
-                raise Exception("Provided directory does not exist !")
+                raise Exception("Thư mục được cung cấp không tồn tại !")
             d_fol_path = s
             if is_zip:
                 await Zip_Handler(d_fol_path, True, False)
@@ -1559,7 +1543,7 @@ async def Do_Mirror(source, is_ytdl, is_zip, is_unzip, is_dualzip):
         if not ospath.exists("/content/drive"):
             drive.mount("/content/drive")
     except Exception as e:
-        raise Exception(f"Failed to Mount Drive ! Because: {e}")
+        raise Exception(f"Không thể gắn ổ đĩa Google Driver! Bởi vì: {e}")
 
     if not ospath.exists(mirror_dir):
         makedirs(mirror_dir)
@@ -1600,7 +1584,7 @@ async def FinalStep(msg, is_leech: bool):
     final_text = (
         f"<b>☘️ File Count:</b>  <code>{len(sent_file)}</code>\n\n<b>📜 Logs:</b>\n"
     )
-    l_ink = "⌬─────[「 Ủng hộ 1 truy cập đi」](https://kiemtiencoban.com)─────⌬"
+    l_ink = "─────[「 Colab Usage 」](https://kiemtiencoban.com)─────"
 
     file_count = (
         f"├<b>☘️ File Count » </b><code>{len(sent_file)} Files</code>\n"
@@ -1651,7 +1635,7 @@ async def FinalStep(msg, is_leech: bool):
                 )
         except Exception as e:
             Err = f"<b>Error Sending logs » </b><i>{e}</i>"
-            Err += f"\n\n<i>⚠️ Đã có lỗi rồi này, liên hệ qua [Telegram](https://t.me/kiemtiencoban) để tui xem háy!</i>"
+            Err += f"\n\n<i>⚠️ Nếu bạn không biết về **LỖI** này, truy cập [Website này](https://kiemtiencoban.com) để cập nhật lỗi</i>"
             await bot.send_message(
                 chat_id=chat_id, reply_to_message_id=msg.id, text=Err
             )
@@ -1662,9 +1646,9 @@ async def FinalStep(msg, is_leech: bool):
 # ****************************************************************
 
 custom_thumb = "/content/Thumbnail.jpg"
-default_thumb = "/content/Leech_Code/custom_thmb.jpg"
 d_path, d_name, d_name, custom_name = "/content/bot_Folder", "", "", ""
-mirror_dir = "/content/drive/MyDrive/Colab Leecher Uploads"
+default_thumb = f"{d_path}/Hinh-Thu-Nho.jpg"
+mirror_dir = "/content/drive/MyDrive/KiemTienCoBan.Com Uploads"
 link_info, msg = False, None
 d_fol_path = f"{d_path}/Downloads"
 temp_zpath = f"{d_path}/Leeched_Files"
@@ -1693,7 +1677,7 @@ is_dualzip, is_unzip, is_zip, is_ytdl, is_dir = (
     YTDL_DOWNLOAD_MODE,
     False,
 )
-caution_msg = "\n\n<i> Chương trình đang chạy rồi, thay vì ngồi chờ! thì đi quét nhà đi <b>Because, Time Is Precious ✨</b></i>"
+caution_msg = "\n\n<i>💖 Bot đang chạy, hãy làm việc khác nếu thời gian tải file/Upload chậm</b></i>"
 if CAPTION == "Regular":
     cap = "p"
 elif CAPTION == "Bold":
@@ -1706,38 +1690,40 @@ else:
     cap = "u"
 
 try:
-    if not thumbChecker():
-        thumb_path = default_thumb
-        print("Không tìm thấy hình thu nhỏ nên chuyển sang hình mặc định")
-    else:
-        thumb_path = custom_thumb
     if ospath.exists(d_path):
         shutil.rmtree(d_path)
         makedirs(d_path)
     else:
         makedirs(d_path)
 
+    if not thumbChecker():
+        os.system(f"aria2c --out='/bot_Folder/Hinh-Thu-Nho.jpg' 'https://graph.org/file/e32cfd832c2a130ebee33.png'")
+        thumb_path = default_thumb
+        print("Không tìm thấy hình thu nhỏ nên chuyển sang hình thu nhỏ mặc định")
+    else:
+        thumb_path = custom_thumb
+
     is_ytdl = YTDL_DOWNLOAD_MODE
 
     print(f"TASK MODE: {TYPE} {MODE} as {UPLOAD_MODE}")
 
     while link.lower() != "c":
-        link = input(f"Download Source [ Enter 'C' to Terminate]: ")
+        link = input(f"Link tải xuống [ Nhập 'C' để bỏ qua nếu bạn chỉ tải 1 link]: ")
         if link.lower() != "c":
             sources.append(link)
 
     if ENABLE_PASSWORD_SUPPORT:
         if TYPE == "Unzip" or TYPE == "UnDoubleZip":
-            uz_pswd = input("Password For Unzip [ Enter 'E' for Empty ]: ")
+            uz_pswd = input("Mật khẩu giải nén [ Nhập 'E' nếu không cần mật khẩu ]: ")
 
         if TYPE == "Zip" or TYPE == "UnDoubleZip":
-            z_pswd = input("Password For Zip [ Enter 'E' for Empty ]: ")
+            z_pswd = input("Mật khẩu cho Zip [ Nhập 'E' nếu không cần mật khẩu ]: ")
 
     if ENABLE_CUSTOM_FILE_NAME:
         if TYPE != "Unzip":
-            custom_name = input("Enter Custom File name [ 'D' to set Default ]: ")
+            custom_name = input("Nhập tên file tùy chỉnh [ 'D' để đặt mặc định ]: ")
         else:
-            print("Custom Name Not Applicable")
+            print("Tên tùy chỉnh không áp dụng")
 
     uz_pswd = "" if uz_pswd.lower() == "e" else uz_pswd
     z_pswd = "" if z_pswd.lower() == "e" else z_pswd
@@ -1751,7 +1737,7 @@ try:
     )
     if MODE == "Dir-Leech":
         if not ospath.exists(sources[0]):
-            raise ValueError(f"Directory Path is Invalid ! Provided: {sources[0]}")
+            raise ValueError(f"Đường dẫn thư mục không hợp lệ! Cung cấp: {sources[0]}")
         if not os.path.exists(temp_files_dir):
             makedirs(temp_files_dir)
         down_msg = f"<b>📤 UPLOADING » </b>\n"
@@ -1767,7 +1753,7 @@ try:
                 ida = "♻️"
             elif "magnet" in link or "torrent" in link:
                 ida = "🧲"
-                caution_msg = "\n\n⚠️<i><b> Torrents Are Strictly Prohibited in Google Colab</b>, Try to avoid Magnets !</i>"
+                caution_msg = "\n\n⚠️<i><b> Torrent bị nghiêm cấm trong Google Colab</b>, Đừng cố gắn sử dụng !</i>"
             elif "youtube.com" in link or "youtu.be" in link:
                 ida = "🏮"
             else:
@@ -1825,6 +1811,7 @@ try:
         else:
             await Do_Leech(sources, is_dir, is_ytdl, is_zip, is_unzip, is_dualzip)  # type: ignore
 
+        shutil.rmtree(d_path)
 
 except Exception as e:
     clear_output()
@@ -1832,18 +1819,18 @@ except Exception as e:
         shutil.rmtree(d_path)
 
     if "400 PEER_ID_INVALID" in str(e):
-        e = "Invalid USER_ID ! Enter your own Telegram USER ID in The Config Cell Correctly, Then Try Again"
+        e = "Lỗi USER_ID ! Nhập chính xác ID Telegram của bạn vào USER_ID trong ô cấu hình, sau đó thử lại!!!"
     elif "Peer id invalid" in str(e):
-        e = "Invalid DUMP_ID ! Enter CHAT ID of CHANNEL or GROUP starting with '-100' in The Config Cell Correctly, Then Try Again. Make sure you added the Bot in The Channel !"
-    elif "Requested format is not available" in str(e):
-        e = "Probably The Given Link is Not Supported by YTDL. Try Again Without YTDL !"
+        e = "DUMP_ID không hợp lệ! Nhập ID CHAT của KÊNH hoặc NHÓM bắt đầu bằng '-100' trong Ô Cấu hình một cách chính xác, sau đó thử lại. Đảm bảo bạn đã thêm Bot vào Kênh/Nhóm có quyền admin!"
+    elif "Định dạng file được yêu cầu không có sẵn" in str(e):
+        e = "Có lẽ Liên kết bạn nhập không được YTDL hỗ trợ. Thử lại mà không có YTDL !"
 
     Error_Text = (
-        "⍟───── [Nghe nhạc không?](https://youtube.com) ─────⍟\n"
-        + f"\n<b>NHIỆM VỤ KHÔNG THỂ HOÀN THÀNH 😰</b>\n\n╭<b>🔖 Name » </b> <code>{d_name}</code>\n├<b>🔖 Đừng lãng phí thời gian » </b>"
+        "⍟───── [Link Colab](https://colab.research.google.com/drive/12hdEqaidRZ8krqj7rpnyDzg1dkKmvdvp) ─────⍟\n"
+        + f"\n<b>TASK Lỗi 💔</b>\n\n╭<b>📛 Name » </b> <code>{d_name}</code>\n├<b>🍃 Thời gian đã chạy » </b>"
         + f"__{getTime((datetime.now() - task_start).seconds)}__\n"  # type: ignore
         + f"<b>╰🤔 Lý do » </b>__{e}__"
-        + f"\n\n<i>⚠️ Đã có lỗi rồi này, liên hệ qua [Telegram](https://t.me/kiemtiencoban) để tui xem háy!</i>"
+        + f"\n\n<i>⚠️ Nếu bạn không biết về **LỖI** này, truy cập vào [Trang web](https://kiemtiencoban.com) mình sẽ kiểm tra và sửa lỗi này sớm!</i>"
     )
 
     async with Client(  # type: ignore
@@ -1859,12 +1846,12 @@ except Exception as e:
                     [
                         [
                             InlineKeyboardButton(  # Opens a web URL
-                                "Ủng hộ 1 truy cập đi 🥺",
+                                "Website 🥺",
                                 url="https://kiemtiencoban.com",
                             ),
                             InlineKeyboardButton(  # Opens a web URL
-                                "Group Discuss 🤔",
-                                url="https://t.me/Colab_Leecher_Discuss",
+                                "Liên hệ",
+                                url="https://t.me/kiemtiencoban",
                             ),
                         ],
                     ]
